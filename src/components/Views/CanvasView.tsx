@@ -1,23 +1,22 @@
 import { motion } from 'framer-motion';
+import { CanvasBoard } from './CanvasBoard';
 
 export const CanvasView = () => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="h-full flex flex-col"
     >
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold mb-2">Canvas Livre</h2>
-        <p className="text-muted-foreground mb-8">
-          Espaço infinito para desenhar, conectar ideias e visualizar fluxos mentais.
+      <div className="p-6 border-b border-border">
+        <h2 className="text-2xl font-bold">Canvas Livre</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Desenhe livremente e visualize suas ideias
         </p>
-        
-        <div className="insight-card p-12 text-center">
-          <p className="text-lg text-muted-foreground">
-            🎨 Em construção... Aguarde a próxima versão!
-          </p>
-        </div>
+      </div>
+      
+      <div className="flex-1">
+        <CanvasBoard />
       </div>
     </motion.div>
   );
