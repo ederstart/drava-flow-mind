@@ -57,6 +57,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        insight: {
+          DEFAULT: "hsl(var(--insight-bg))",
+          hover: "hsl(var(--insight-hover))",
+        },
+        canvas: {
+          DEFAULT: "hsl(var(--canvas-bg))",
+        },
+        tag: {
+          DEFAULT: "hsl(var(--tag-bg))",
+          foreground: "hsl(var(--tag-text))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
