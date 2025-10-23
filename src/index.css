@@ -101,3 +101,109 @@ All colors MUST be HSL.
     @apply bg-card/80 backdrop-blur-sm border border-border/50;
   }
 }
+
+/* Custom styles for rich text editor */
+.rich-editor .ql-container {
+  min-height: 300px;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.rich-editor .ql-editor {
+  min-height: 300px;
+  padding: 16px;
+}
+
+.rich-editor .ql-editor.ql-blank::before {
+  color: hsl(var(--muted-foreground));
+  font-style: normal;
+}
+
+.rich-editor .ql-toolbar {
+  border-color: hsl(var(--border));
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: hsl(var(--muted) / 0.3);
+}
+
+.rich-editor .ql-container {
+  border-color: hsl(var(--border));
+  border-radius: 0 0 0.5rem 0.5rem;
+  background: transparent;
+}
+
+.rich-editor .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+.rich-editor .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+.rich-editor .ql-picker-label {
+  color: hsl(var(--foreground));
+}
+
+.rich-editor .ql-editor strong {
+  font-weight: 600;
+}
+
+/* Prose styles for displaying HTML content */
+.prose {
+  color: hsl(var(--foreground));
+  max-width: none;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose ul, .prose ol {
+  margin-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  padding-left: 1em;
+  margin-left: 0;
+  font-style: italic;
+}
+
+.prose code {
+  background: hsl(var(--muted));
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.prose a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+.prose p {
+  margin: 0;
+}
+
+.prose.prose-sm {
+  font-size: 0.875rem;
+}

@@ -174,6 +174,50 @@ export type Database = {
           },
         ]
       }
+      insight_versions: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          insight_id: string
+          source: string | null
+          tags: string[] | null
+          title: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          insight_id: string
+          source?: string | null
+          tags?: string[] | null
+          title: string
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          insight_id?: string
+          source?: string | null
+          tags?: string[] | null
+          title?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insight_versions_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insights: {
         Row: {
           content: string

@@ -106,9 +106,10 @@ export const InsightsList = ({ onSelectInsight, refresh }: InsightsListProps) =>
                   {insight.title || 'Sem título'}
                 </h4>
                 
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                  {insight.content}
-                </p>
+                <div 
+                  className="text-sm text-muted-foreground line-clamp-2 mb-3 prose prose-sm"
+                  dangerouslySetInnerHTML={{ __html: insight.content }}
+                />
 
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
