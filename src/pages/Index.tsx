@@ -6,11 +6,15 @@ import { InsightsList } from '@/components/Editor/InsightsList';
 import { KanbanView } from '@/components/Views/KanbanView';
 import { CanvasView } from '@/components/Views/CanvasView';
 import { AgendaView } from '@/components/Views/AgendaView';
+import { MindMapView } from '@/components/Views/MindMapView';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-type ViewType = 'editor' | 'kanban' | 'canvas' | 'agenda';
+type ViewType = 'editor' | 'kanban' | 'canvas' | 'agenda' | 'mindmap';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -37,6 +41,18 @@ const Index = () => {
 
   const handleInsightSaved = () => {
     setRefreshList(prev => prev + 1);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success('Logout realizado com sucesso!');
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Erro ao fazer logout');
+    }
   };
 
   useEffect(() => {
@@ -72,6 +88,17 @@ const Index = () => {
       />
       
       <main className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex justify-end p-4 border-b border-border">
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair
+          </Button>
+        </div>
         {activeView === 'editor' ? (
           <Tabs defaultValue="editor" className="h-full flex flex-col">
             <TabsList className="m-4 w-fit">
@@ -95,6 +122,8 @@ const Index = () => {
           </Tabs>
         ) : activeView === 'kanban' ? (
           <KanbanView />
+        ) : activeView === 'mindmap' ? (
+          <MindMapView />
         ) : activeView === 'canvas' ? (
           <CanvasView />
         ) : (

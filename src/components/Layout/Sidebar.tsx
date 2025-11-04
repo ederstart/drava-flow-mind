@@ -1,16 +1,17 @@
 import { motion } from 'framer-motion';
-import { FileEdit, LayoutGrid, Palette, Calendar, Plus } from 'lucide-react';
+import { FileEdit, LayoutGrid, Palette, Calendar, Plus, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
-  activeView: 'editor' | 'kanban' | 'canvas' | 'agenda';
-  onViewChange: (view: 'editor' | 'kanban' | 'canvas' | 'agenda') => void;
+  activeView: 'editor' | 'kanban' | 'canvas' | 'agenda' | 'mindmap';
+  onViewChange: (view: 'editor' | 'kanban' | 'canvas' | 'agenda' | 'mindmap') => void;
   onNewInsight: () => void;
 }
 
 const menuItems = [
   { id: 'editor', label: 'Insights', icon: FileEdit },
   { id: 'kanban', label: 'Kanban', icon: LayoutGrid },
+  { id: 'mindmap', label: 'Mapa Mental', icon: Network },
   { id: 'canvas', label: 'Canvas', icon: Palette },
   { id: 'agenda', label: 'Agenda', icon: Calendar },
 ] as const;
