@@ -13,13 +13,23 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { motion } from 'framer-motion';
-import { Plus, Save, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Save, Trash2, Loader2, FileText, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { MindMapNode, MindMapNodeData } from './MindMapNode';
+import { MindMapsList } from './MindMapsList';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const nodeTypes = {
   mindmap: MindMapNode,
@@ -33,6 +43,9 @@ export const MindMapView = () => {
   const [currentMapId, setCurrentMapId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showList, setShowList] = useState(false);
+  const [showTextConverter, setShowTextConverter] = useState(false);
+  const [textInput, setTextInput] = useState('');
 
   const callbacksRef = useRef<{
     handleAddChild: ((nodeId: string) => void) | null;
@@ -166,7 +179,7 @@ export const MindMapView = () => {
     [nodes]
   );
 
-  const addNode = useCallback((parentId?: string) => {
+  const addNode = useCallback((parentId?: string, label?: string, description?: string) => {
     if (parentId) {
       callbacksRef.current.handleAddChild?.(parentId);
       return;
@@ -180,7 +193,8 @@ export const MindMapView = () => {
         y: Math.random() * 300 + 100,
       },
       data: {
-        label: 'Nova Ideia',
+        label: label || '',
+        description: description || '',
         isBold: false,
         isItalic: false,
         isTitle: false,
@@ -194,7 +208,113 @@ export const MindMapView = () => {
     };
 
     setNodes((nds) => [...nds, newNode]);
+    return newNode.id;
   }, []);
+
+  const convertTextToMindMap = () => {
+    if (!textInput.trim()) {
+      toast.error('Digite algum texto para converter');
+      return;
+    }
+
+    const lines = textInput.split('\n').filter(line => line.trim());
+    const nodeMap = new Map<string, string>();
+    const newNodes: Node<MindMapNodeData>[] = [];
+    const newEdges: Edge[] = [];
+    
+    let currentTitle = '';
+    let currentDescription = '';
+    let yPosition = 100;
+
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      
+      // Check if line ends with . indicating a title/node
+      if (trimmed.endsWith('.')) {
+        // Save previous node if exists
+        if (currentTitle) {
+          const nodeId = `node-${Date.now()}-${index}`;
+          nodeMap.set(currentTitle.toLowerCase(), nodeId);
+          
+          newNodes.push({
+            id: nodeId,
+            type: 'mindmap',
+            position: { x: 250, y: yPosition },
+            data: {
+              label: currentTitle,
+              description: currentDescription.trim(),
+              isBold: false,
+              isItalic: false,
+              isTitle: false,
+              fontSize: 14,
+              collapsed: false,
+              hasChildren: false,
+              onAddChild: callbacksRef.current.handleAddChild!,
+              onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
+              onUpdate: callbacksRef.current.handleUpdateNode!,
+            },
+          });
+          
+          yPosition += 100;
+        }
+        
+        // Start new node
+        currentTitle = trimmed.slice(0, -1);
+        currentDescription = '';
+      } else {
+        // Add to description
+        currentDescription += (currentDescription ? '\n' : '') + trimmed;
+      }
+    });
+
+    // Add last node
+    if (currentTitle) {
+      const nodeId = `node-${Date.now()}-last`;
+      nodeMap.set(currentTitle.toLowerCase(), nodeId);
+      
+      newNodes.push({
+        id: nodeId,
+        type: 'mindmap',
+        position: { x: 250, y: yPosition },
+        data: {
+          label: currentTitle,
+          description: currentDescription.trim(),
+          isBold: false,
+          isItalic: false,
+          isTitle: false,
+          fontSize: 14,
+          collapsed: false,
+          hasChildren: false,
+          onAddChild: callbacksRef.current.handleAddChild!,
+          onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
+          onUpdate: callbacksRef.current.handleUpdateNode!,
+        },
+      });
+    }
+
+    // Connect first node to others
+    if (newNodes.length > 1) {
+      const firstNodeId = newNodes[0].id;
+      newNodes.slice(1).forEach((node, idx) => {
+        newEdges.push({
+          id: `edge-${Date.now()}-${idx}`,
+          source: firstNodeId,
+          target: node.id,
+          type: 'smoothstep',
+          animated: true,
+        });
+      });
+      
+      // Update first node to have children
+      newNodes[0].data.hasChildren = true;
+    }
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setShowTextConverter(false);
+    setTextInput('');
+    toast.success('Mapa mental criado com sucesso!');
+  };
 
   // Update ref with stable callbacks
   useEffect(() => {
@@ -205,25 +325,24 @@ export const MindMapView = () => {
     };
   }, [handleAddChild, handleToggleCollapse, handleUpdateNode]);
 
-  const loadMindMaps = useCallback(async () => {
+  const loadMindMap = useCallback(async (mapId: string) => {
     if (!user) return;
     
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('mind_maps')
         .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1);
+        .eq('id', mapId)
+        .single();
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        const map = data[0];
-        setCurrentMapId(map.id);
-        setTitle(map.title);
+      if (data) {
+        setCurrentMapId(data.id);
+        setTitle(data.title);
         
-        // Load nodes with proper callbacks
-        const loadedNodes = ((map.nodes as any) || []).map((node: any) => ({
+        const loadedNodes = ((data.nodes as any) || []).map((node: any) => ({
           ...node,
           data: {
             ...node.data,
@@ -234,18 +353,27 @@ export const MindMapView = () => {
         }));
         
         setNodes(loadedNodes);
-        setEdges((map.edges as any) || []);
+        setEdges((data.edges as any) || []);
       }
     } catch (error) {
       console.error('Error loading mind map:', error);
+      toast.error('Erro ao carregar mapa mental');
     } finally {
       setLoading(false);
     }
   }, [user]);
 
+  const createNewMap = () => {
+    setNodes([]);
+    setEdges([]);
+    setTitle('Novo Mapa Mental');
+    setCurrentMapId(null);
+    setShowList(false);
+  };
+
   useEffect(() => {
-    loadMindMaps();
-  }, [loadMindMaps]);
+    setLoading(false);
+  }, []);
 
   const saveMindMap = async () => {
     if (!user) {
@@ -293,10 +421,7 @@ export const MindMapView = () => {
 
   const clearMindMap = () => {
     if (window.confirm('Tem certeza que deseja limpar o mapa mental?')) {
-      setNodes([]);
-      setEdges([]);
-      setTitle('Novo Mapa Mental');
-      setCurrentMapId(null);
+      createNewMap();
       toast.success('Mapa mental limpo!');
     }
   };
@@ -306,6 +431,30 @@ export const MindMapView = () => {
       <div className="flex items-center justify-center h-full">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (showList) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="h-full flex flex-col"
+      >
+        <div className="p-6 border-b border-border">
+          <Button onClick={() => setShowList(false)} variant="outline" size="sm">
+            ← Voltar ao Editor
+          </Button>
+        </div>
+        <MindMapsList
+          onSelectMap={(mapId) => {
+            loadMindMap(mapId);
+            setShowList(false);
+          }}
+          onNewMap={createNewMap}
+          currentMapId={currentMapId}
+        />
+      </motion.div>
     );
   }
 
@@ -325,17 +474,57 @@ export const MindMapView = () => {
               placeholder="Título do Mapa Mental"
             />
             <p className="text-sm text-muted-foreground mt-1">
-              Crie mapas mentais com múltiplas ramificações
+              Clique em um nó para adicionar descrição • Duplo clique para editar
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={() => setShowList(true)}
+              variant="outline"
+              size="sm"
+            >
+              <List className="w-4 h-4 mr-2" />
+              Meus Mapas
+            </Button>
+            <Dialog open={showTextConverter} onOpenChange={setShowTextConverter}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Texto → Mapa
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Converter Texto em Mapa Mental</DialogTitle>
+                  <DialogDescription>
+                    Digite títulos terminados em ponto (.) e suas descrições abaixo. Cada título vira um nó conectado ao primeiro.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Exemplo:&#10;Loja.&#10;Escolhi o nome Mimas, lua de Saturno, para reconectar pessoas.&#10;&#10;Paleta de cores.&#10;Branco mármore #ffffe0, verde suave.&#10;&#10;Visão de futuro.&#10;Expandir para 5 lojas em 3 anos."
+                    className="min-h-[300px] font-mono text-sm"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setShowTextConverter(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={convertTextToMindMap}>
+                      Criar Mapa Mental
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button
               onClick={() => addNode()}
               variant="outline"
               size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Novo Nó Raiz
+              Novo Nó
             </Button>
             <Button
               onClick={clearMindMap}
@@ -384,7 +573,7 @@ export const MindMapView = () => {
           />
           <Panel position="top-center" className="bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full border border-border shadow-lg">
             <p className="text-xs text-muted-foreground">
-              <strong>Duplo clique</strong> para editar • <strong>Hover</strong> para controles • <strong>Clique no ícone</strong> para ocultar filhos
+              <strong>Clique no nó</strong> para descrição • <strong>Duplo clique</strong> para editar • <strong>+</strong> para adicionar filho
             </p>
           </Panel>
         </ReactFlow>
