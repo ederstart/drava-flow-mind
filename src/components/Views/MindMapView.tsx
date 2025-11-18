@@ -51,10 +51,12 @@ export const MindMapView = () => {
     handleAddChild: ((nodeId: string) => void) | null;
     handleToggleCollapse: ((nodeId: string) => void) | null;
     handleUpdateNode: ((nodeId: string, updates: Partial<MindMapNodeData>) => void) | null;
+    handleDeleteNode: ((nodeId: string) => void) | null;
   }>({
     handleAddChild: null,
     handleToggleCollapse: null,
     handleUpdateNode: null,
+    handleDeleteNode: null,
   });
 
   const onConnect = useCallback(
@@ -89,6 +91,48 @@ export const MindMapView = () => {
       );
     },
     []
+  );
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      // Get all descendant nodes to delete
+      const getDescendants = (id: string, currentEdges: Edge[]): string[] => {
+        const children = currentEdges
+          .filter((e) => e.source === id)
+          .map((e) => e.target);
+        return [
+          ...children,
+          ...children.flatMap((childId) => getDescendants(childId, currentEdges)),
+        ];
+      };
+
+      const descendants = getDescendants(nodeId, edges);
+      const nodesToDelete = [nodeId, ...descendants];
+
+      // Remove nodes
+      setNodes((nds) => nds.filter((node) => !nodesToDelete.includes(node.id)));
+
+      // Remove edges connected to deleted nodes
+      setEdges((eds) =>
+        eds.filter((edge) => !nodesToDelete.includes(edge.source) && !nodesToDelete.includes(edge.target))
+      );
+
+      // Update parent node if it lost all children
+      const parentEdge = edges.find((e) => e.target === nodeId);
+      if (parentEdge) {
+        const parentId = parentEdge.source;
+        const remainingChildren = edges.filter(
+          (e) => e.source === parentId && e.target !== nodeId
+        );
+        
+        if (remainingChildren.length === 0) {
+          updateNodeChildren(parentId, false);
+        }
+      }
+
+      toast.success('Nó excluído');
+    },
+    [edges]
   );
 
   const handleToggleCollapse = useCallback(
@@ -150,18 +194,19 @@ export const MindMapView = () => {
           x: (nodes.find((n) => n.id === nodeId)?.position.x || 0) + 200,
           y: (nodes.find((n) => n.id === nodeId)?.position.y || 0) + 50,
         },
-        data: {
-          label: 'Nova Ideia',
-          isBold: false,
-          isItalic: false,
-          isTitle: false,
-          fontSize: 14,
-          collapsed: false,
-          hasChildren: false,
-          onAddChild: callbacksRef.current.handleAddChild!,
-          onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
-          onUpdate: callbacksRef.current.handleUpdateNode!,
-        },
+          data: {
+            label: 'Nova Ideia',
+            isBold: false,
+            isItalic: false,
+            isTitle: false,
+            fontSize: 14,
+            collapsed: false,
+            hasChildren: false,
+            onAddChild: callbacksRef.current.handleAddChild!,
+            onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
+            onUpdate: callbacksRef.current.handleUpdateNode!,
+            onDelete: callbacksRef.current.handleDeleteNode!,
+          },
       };
 
       setNodes((nds) => [...nds, newNode]);
@@ -192,19 +237,20 @@ export const MindMapView = () => {
         x: Math.random() * 300 + 100,
         y: Math.random() * 300 + 100,
       },
-      data: {
-        label: label || '',
-        description: description || '',
-        isBold: false,
-        isItalic: false,
-        isTitle: false,
-        fontSize: 14,
-        collapsed: false,
-        hasChildren: false,
-        onAddChild: callbacksRef.current.handleAddChild!,
-        onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
-        onUpdate: callbacksRef.current.handleUpdateNode!,
-      },
+        data: {
+          label: label || '',
+          description: description || '',
+          isBold: false,
+          isItalic: false,
+          isTitle: false,
+          fontSize: 14,
+          collapsed: false,
+          hasChildren: false,
+          onAddChild: callbacksRef.current.handleAddChild!,
+          onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
+          onUpdate: callbacksRef.current.handleUpdateNode!,
+          onDelete: callbacksRef.current.handleDeleteNode!,
+        },
     };
 
     setNodes((nds) => [...nds, newNode]);
@@ -252,6 +298,7 @@ export const MindMapView = () => {
               onAddChild: callbacksRef.current.handleAddChild!,
               onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
               onUpdate: callbacksRef.current.handleUpdateNode!,
+              onDelete: callbacksRef.current.handleDeleteNode!,
             },
           });
           
@@ -288,6 +335,7 @@ export const MindMapView = () => {
           onAddChild: callbacksRef.current.handleAddChild!,
           onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
           onUpdate: callbacksRef.current.handleUpdateNode!,
+          onDelete: callbacksRef.current.handleDeleteNode!,
         },
       });
     }
@@ -322,8 +370,9 @@ export const MindMapView = () => {
       handleAddChild,
       handleToggleCollapse,
       handleUpdateNode,
+      handleDeleteNode,
     };
-  }, [handleAddChild, handleToggleCollapse, handleUpdateNode]);
+  }, [handleAddChild, handleToggleCollapse, handleUpdateNode, handleDeleteNode]);
 
   const loadMindMap = useCallback(async (mapId: string) => {
     if (!user) return;
@@ -349,6 +398,7 @@ export const MindMapView = () => {
             onAddChild: callbacksRef.current.handleAddChild!,
             onToggleCollapse: callbacksRef.current.handleToggleCollapse!,
             onUpdate: callbacksRef.current.handleUpdateNode!,
+            onDelete: callbacksRef.current.handleDeleteNode!,
           },
         }));
         

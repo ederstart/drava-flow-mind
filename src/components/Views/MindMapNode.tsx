@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +29,7 @@ export type MindMapNodeData = {
   onAddChild?: (nodeId: string) => void;
   onToggleCollapse?: (nodeId: string) => void;
   onUpdate?: (nodeId: string, data: Partial<MindMapNodeData>) => void;
+  onDelete?: (nodeId: string) => void;
 };
 
 export const MindMapNode = memo(({ id, data }: NodeProps<MindMapNodeData>) => {
@@ -148,6 +149,18 @@ export const MindMapNode = memo(({ id, data }: NodeProps<MindMapNodeData>) => {
             onClick={() => data.onAddChild?.(id)}
           >
             <Plus className="w-3 h-3" />
+          </Button>
+          <Button
+            size="icon"
+            variant="outline"
+            className="h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              if (window.confirm('Excluir este nó e todos os seus filhos?')) {
+                data.onDelete?.(id);
+              }
+            }}
+          >
+            <Trash2 className="w-3 h-3" />
           </Button>
         </div>
       )}
