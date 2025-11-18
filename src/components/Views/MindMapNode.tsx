@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -10,9 +11,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export type MindMapNodeData = {
   label: string;
+  description?: string;
   isTitle?: boolean;
   isBold?: boolean;
   isItalic?: boolean;
@@ -27,7 +34,9 @@ export type MindMapNodeData = {
 export const MindMapNode = memo(({ id, data }: NodeProps<MindMapNodeData>) => {
   const [isEditing, setIsEditing] = useState(false);
   const [label, setLabel] = useState(data.label);
+  const [description, setDescription] = useState(data.description || '');
   const [showControls, setShowControls] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   const handleDoubleClick = () => {
     setIsEditing(true);
@@ -35,8 +44,8 @@ export const MindMapNode = memo(({ id, data }: NodeProps<MindMapNodeData>) => {
 
   const handleBlur = () => {
     setIsEditing(false);
-    if (label !== data.label && data.onUpdate) {
-      data.onUpdate(id, { label });
+    if ((label !== data.label || description !== data.description) && data.onUpdate) {
+      data.onUpdate(id, { label, description });
     }
   };
 
@@ -73,43 +82,62 @@ export const MindMapNode = memo(({ id, data }: NodeProps<MindMapNodeData>) => {
     >
       <Handle type="target" position={Position.Left} className="!bg-primary" />
       
-      <div
-        className={`px-6 py-3 rounded-full shadow-lg border-2 border-primary bg-card transition-all hover:shadow-xl ${
-          data.collapsed ? 'opacity-75' : ''
-        }`}
-        onDoubleClick={handleDoubleClick}
-      >
-        {isEditing ? (
-          <Input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            autoFocus
-            className="h-auto min-w-[100px] border-none bg-transparent p-0 focus-visible:ring-0"
-          />
-        ) : (
-          <div className="flex items-center gap-2">
-            {data.hasChildren && (
-              <button
-                onClick={() => data.onToggleCollapse?.(id)}
-                className="hover:bg-muted rounded p-1 transition-colors"
-              >
-                {data.collapsed ? (
-                  <ChevronRight className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
+      <Popover open={showDescription} onOpenChange={setShowDescription}>
+        <PopoverTrigger asChild>
+          <div
+            className={`px-6 py-3 rounded-full shadow-lg border-2 border-primary bg-card transition-all hover:shadow-xl cursor-pointer ${
+              data.collapsed ? 'opacity-75' : ''
+            }`}
+            onDoubleClick={handleDoubleClick}
+          >
+            {isEditing ? (
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                className="h-auto min-w-[100px] border-none bg-transparent p-0 focus-visible:ring-0"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                {data.hasChildren && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      data.onToggleCollapse?.(id);
+                    }}
+                    className="hover:bg-muted rounded p-1 transition-colors"
+                  >
+                    {data.collapsed ? (
+                      <ChevronRight className="w-3 h-3" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3" />
+                    )}
+                  </button>
                 )}
-              </button>
+                <span
+                  className={`${getFontSize()} ${getFontWeight()} ${getFontStyle()} text-foreground whitespace-nowrap`}
+                >
+                  {data.label}
+                </span>
+              </div>
             )}
-            <span
-              className={`${getFontSize()} ${getFontWeight()} ${getFontStyle()} text-foreground whitespace-nowrap`}
-            >
-              {data.label}
-            </span>
           </div>
-        )}
-      </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" onClick={(e) => e.stopPropagation()}>
+          <div className="space-y-2">
+            <h4 className="font-semibold text-sm">Descrição</h4>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={handleBlur}
+              placeholder="Adicione uma descrição para este nó..."
+              className="min-h-[100px] text-sm"
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {showControls && (
         <div className="absolute -right-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
